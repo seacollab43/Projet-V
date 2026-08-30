@@ -31,6 +31,7 @@ LocalBusiness et les pages locales.
 
 - `npm run dev` : développement local
 - `npm run build` : build de production
+- `npm run build:pages` : build statique du preview GitHub Pages
 - `npm run lint` : contrôle du code
 - `npm test` : validation du rendu
 
@@ -38,6 +39,12 @@ LocalBusiness et les pages locales.
 
 Le projet utilise le starter Vinext officiel de Sites afin de conserver une
 chaîne de build reproductible et un déploiement propre.
+
+## Preview GitHub Pages
+
+Le workflow `.github/workflows/pages.yml` construit une version statique à
+partir des mêmes composants React que le site principal. Chaque mise à jour de
+la branche `main` republie automatiquement ce preview sur GitHub Pages.
 
 ## Prerequisites
 

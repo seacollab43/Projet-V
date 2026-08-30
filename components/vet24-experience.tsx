@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Stethoscope,
   Syringe,
+  X,
 } from "lucide-react";
 import {
   motion,
@@ -25,7 +26,13 @@ import {
   useTransform,
 } from "motion/react";
 import Image from "next/image";
-import { useRef, type PointerEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 
 import {
   Accordion,
@@ -60,6 +67,20 @@ const navItems = [
   ["Contact", "#contact"],
 ] as const;
 
+function useMobileViewport() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 820px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
+}
+
 function Reveal({
   children,
   className = "",
@@ -73,8 +94,7 @@ function Reveal({
     <div className={`reveal-window ${className}`}>
       <motion.div
         initial={{ y: "112%" }}
-        whileInView={{ y: 0 }}
-        viewport={{ once: true, amount: 0.35 }}
+        animate={{ y: 0 }}
         transition={{ duration: 0.82, delay, ease: [0.22, 1, 0.36, 1] }}
       >
         {children}
@@ -106,6 +126,8 @@ function MagneticArrow() {
 }
 
 function FloatingNavigation() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <header className="floating-header">
       <div className="glass-nav">
@@ -124,31 +146,31 @@ function FloatingNavigation() {
           <Phone aria-hidden="true" />
           <span>Appeler</span>
         </a>
-        <Sheet>
+        <Sheet modal={false} open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetTrigger asChild>
-            <button className="menu-trigger" type="button" aria-label="Ouvrir le menu">
-              <Menu />
+            <button
+              className="menu-trigger"
+              type="button"
+              aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
             </button>
           </SheetTrigger>
-          <SheetContent className="mobile-sheet" side="right">
-            <SheetHeader>
-              <SheetTitle>VET24</SheetTitle>
-              <SheetDescription>Clinique vétérinaire à Casablanca</SheetDescription>
+          <SheetContent className="mobile-sheet" side="top" showCloseButton={false}>
+            <SheetHeader className="sr-only">
+              <SheetTitle>Menu Vet24</SheetTitle>
+              <SheetDescription>Navigation principale de la clinique vétérinaire Vet24</SheetDescription>
             </SheetHeader>
             <nav className="mobile-nav" aria-label="Navigation mobile">
-              {navItems.map(([label, href], index) => (
+              {navItems.map(([label, href]) => (
                 <SheetClose asChild key={href}>
                   <a href={href}>
-                    <span>{String(index + 1).padStart(2, "0")}</span>
                     {label}
-                    <ArrowUpRight aria-hidden="true" />
                   </a>
                 </SheetClose>
               ))}
             </nav>
-            <a className="button button-lime sheet-call" href="tel:+212520968023">
-              <Phone aria-hidden="true" /> 05 20 96 80 23
-            </a>
           </SheetContent>
         </Sheet>
       </div>
@@ -158,6 +180,7 @@ function FloatingNavigation() {
 
 function Hero() {
   const heroRef = useRef<HTMLElement>(null);
+  const isMobile = useMobileViewport();
   const pointerX = useMotionValue(0);
   const pointerY = useMotionValue(0);
   const smoothX = useSpring(pointerX, { stiffness: 80, damping: 22 });
@@ -181,29 +204,30 @@ function Hero() {
       className="hero-editorial"
       id="accueil"
       ref={heroRef}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={() => { pointerX.set(0); pointerY.set(0); }}
+      onPointerMove={isMobile ? undefined : handlePointerMove}
+      onPointerLeave={isMobile ? undefined : () => { pointerX.set(0); pointerY.set(0); }}
     >
       <div className="hero-gridlines" aria-hidden="true" />
-      <motion.div className="hero-monogram" style={{ y: wordY }} aria-hidden="true">
+      <motion.div className="hero-monogram" style={isMobile ? undefined : { y: wordY }} aria-hidden="true">
         <span>VET</span><span>24</span>
       </motion.div>
       <motion.div
         className="hero-animal"
-        style={{ x: smoothX, y: animalY, scale: animalScale }}
+        style={isMobile ? undefined : { x: smoothX, y: animalY, scale: animalScale }}
       >
-        <motion.div style={{ y: smoothY }}>
+        <motion.div style={isMobile ? undefined : { y: smoothY }}>
           <Image
             src="/vet24-dog-cutout.webp"
             width={1024}
             height={1536}
             alt="Chien accueilli à la clinique vétérinaire Vet24 à Casablanca"
             priority
+            unoptimized
             sizes="(max-width: 720px) 82vw, 46vw"
           />
         </motion.div>
       </motion.div>
-      <motion.div className="hero-foreground-word" style={{ y: wordY }} aria-hidden="true">
+      <motion.div className="hero-foreground-word" style={isMobile ? undefined : { y: wordY }} aria-hidden="true">
         24
       </motion.div>
       <div className="hero-content site-container-wide">
@@ -295,14 +319,9 @@ function Services() {
           {services.map((service, index) => {
             const Icon = serviceIcons[index];
             return (
-              <motion.article
+              <article
                 className="service-row"
                 key={service.title}
-                initial={{ opacity: 0, x: index % 2 === 0 ? -42 : 42 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, amount: 0.35 }}
-                whileHover={{ x: 8 }}
-                transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
               >
                 <span className="service-index">{String(index + 1).padStart(2, "0")}</span>
                 <span className="service-icon" aria-hidden="true"><Icon /></span>
@@ -310,7 +329,7 @@ function Services() {
                 <p className="service-description">{service.description}</p>
                 <span className="service-detail">{service.detail}</span>
                 <span className="service-arrow" aria-hidden="true"><ArrowUpRight /></span>
-              </motion.article>
+              </article>
             );
           })}
         </div>
@@ -321,6 +340,7 @@ function Services() {
 
 function Emergency() {
   const sectionRef = useRef<HTMLElement>(null);
+  const isMobile = useMobileViewport();
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start end", "end start"],
@@ -329,12 +349,13 @@ function Emergency() {
   return (
     <section className="emergency-editorial" ref={sectionRef}>
       <div className="emergency-word" aria-hidden="true">URGENCE</div>
-      <motion.div className="emergency-cat" style={{ y: catY }}>
+      <motion.div className="emergency-cat" style={isMobile ? undefined : { y: catY }}>
         <Image
           src="/vet24-cat-peek.webp"
           width={1254}
           height={1254}
           alt="Chat suivi par la clinique Vet24"
+          unoptimized
           sizes="(max-width: 720px) 70vw, 34vw"
         />
       </motion.div>
